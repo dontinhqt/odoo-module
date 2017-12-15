@@ -44,6 +44,7 @@ class Session(models.Model):
     duration = fields.Float(digits=(6, 2), help="Duration in days")
     seats = fields.Integer(string="Number of seats")
     active = fields.Boolean(default=True)
+    color = fields.Integer()
 
     instructor_id = fields.Many2one('res.partner', string="Instructor",
                                     domain=['|', ('instructor', '=', True),
@@ -62,6 +63,28 @@ class Session(models.Model):
 
     attendees_count = fields.Integer(
         string="Attendees count", compute='_get_attendees_count', store=True)
+
+    state = fields.Selection([
+        ('draft', "Draft"),
+        ('confirmed', "Confirmed"),
+        ('done', "Done"),
+    ], default='draft')
+
+    @api.multi
+    @api.onchange('taken_seats')
+    def action_draft(self):
+        if self.taken_seats < 50:
+            self.state = 'draft'
+        else:
+            self.state = 'confirmed'
+
+    @api.multi
+    def action_confirm(self):
+        self.state = 'confirmed'
+
+    @api.multi
+    def action_done(self):
+        self.state = 'done'
 
     @api.depends('seats', 'attendee_ids')
     def _taken_seats(self):
